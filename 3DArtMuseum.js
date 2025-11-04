@@ -22930,6 +22930,7 @@ var objectDescription;
 
 var voiceGuide;
 var voiceGuideVolume = 1;
+var isMuted = false;
 
 var camPos = null;
 var targetPos = null;
@@ -22957,15 +22958,17 @@ var moveRight = false;
 var moveSpeed = 2.0;
 
 document.getElementById("controls_minus").onclick = function () {
-  if (voiceGuideVolume - 0.1 > 0) {
-    voiceGuideVolume = voiceGuideVolume - 0.1;
-    voiceGuide.volume = voiceGuideVolume;
+  // Mute audio
+  isMuted = true;
+  if (voiceGuide != undefined) {
+    voiceGuide.volume = 0;
   }
 };
 
 document.getElementById("controls_plus").onclick = function () {
-  if (voiceGuideVolume + 0.1 < 1.1) {
-    voiceGuideVolume = voiceGuideVolume + 0.1;
+  // Unmute audio
+  isMuted = false;
+  if (voiceGuide != undefined) {
     voiceGuide.volume = voiceGuideVolume;
   }
 };
@@ -22976,23 +22979,42 @@ document.getElementById("info").onclick = function () {
 
 // Keyboard event handlers for movement
 function onKeyDown(event) {
+  var isMovementKey = false;
+  
   switch (event.keyCode) {
     case 38: // Arrow Up
     case 87: // W
       moveForward = true;
+      isMovementKey = true;
       break;
     case 37: // Arrow Left
     case 65: // A
       moveLeft = true;
+      isMovementKey = true;
       break;
     case 40: // Arrow Down
     case 83: // S
       moveBackward = true;
+      isMovementKey = true;
       break;
     case 39: // Arrow Right
     case 68: // D
       moveRight = true;
+      isMovementKey = true;
       break;
+  }
+  
+  // Cancel picture navigation when moving manually
+  if (isMovementKey && camPos != null) {
+    camPos = null;
+    targetPos = null;
+    targetRotation = camera.rotation.y;
+    
+    // Stop audio and hide info
+    if (voiceGuide != undefined) {
+      voiceGuide.pause();
+    }
+    document.getElementById("info").style.display = "none";
   }
 }
 
@@ -23122,7 +23144,7 @@ function animate() {
       voiceGuide.onended = function () {
         document.getElementById("info").style.display = "none";
       };
-      voiceGuide.volume = voiceGuideVolume;
+      voiceGuide.volume = isMuted ? 0 : voiceGuideVolume;
       voiceGuide.play();
       document.getElementById("info").style.display = "block";
       document.getElementById("infotext").innerHTML =
@@ -23442,7 +23464,7 @@ function welcomeSpeak() {
   voiceGuide.onended = function () {
     document.getElementById("info").style.display = "none";
   };
-  voiceGuide.volume = voiceGuideVolume;
+  voiceGuide.volume = isMuted ? 0 : voiceGuideVolume;
   
   // Handle audio play with promise for better browser compatibility
   var playPromise = voiceGuide.play();
