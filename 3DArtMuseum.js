@@ -22949,6 +22949,13 @@ var windowHalfY;
 var welcomeFile = "";
 var welcomeText = "";
 
+// Keyboard movement variables
+var moveForward = false;
+var moveBackward = false;
+var moveLeft = false;
+var moveRight = false;
+var moveSpeed = 2.0;
+
 document.getElementById("controls_minus").onclick = function () {
   if (voiceGuideVolume - 0.1 > 0) {
     voiceGuideVolume = voiceGuideVolume - 0.1;
@@ -22967,6 +22974,49 @@ document.getElementById("info").onclick = function () {
   document.getElementById("info").style.display = "none";
 };
 
+// Keyboard event handlers for movement
+function onKeyDown(event) {
+  switch (event.keyCode) {
+    case 38: // Arrow Up
+    case 87: // W
+      moveForward = true;
+      break;
+    case 37: // Arrow Left
+    case 65: // A
+      moveLeft = true;
+      break;
+    case 40: // Arrow Down
+    case 83: // S
+      moveBackward = true;
+      break;
+    case 39: // Arrow Right
+    case 68: // D
+      moveRight = true;
+      break;
+  }
+}
+
+function onKeyUp(event) {
+  switch (event.keyCode) {
+    case 38: // Arrow Up
+    case 87: // W
+      moveForward = false;
+      break;
+    case 37: // Arrow Left
+    case 65: // A
+      moveLeft = false;
+      break;
+    case 40: // Arrow Down
+    case 83: // S
+      moveBackward = false;
+      break;
+    case 39: // Arrow Right
+    case 68: // D
+      moveRight = false;
+      break;
+  }
+}
+
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -22975,6 +23025,46 @@ function onWindowResize() {
 
 function animate() {
   requestAnimationFrame(animate);
+
+  // Keyboard movement (only when no picture is selected)
+  if (camPos == null) {
+    var moveX = 0;
+    var moveZ = 0;
+    
+    // Calculate movement direction based on camera rotation
+    var angle = camera.rotation.y;
+    
+    if (moveForward) {
+      moveX -= Math.sin(angle) * moveSpeed;
+      moveZ -= Math.cos(angle) * moveSpeed;
+    }
+    if (moveBackward) {
+      moveX += Math.sin(angle) * moveSpeed;
+      moveZ += Math.cos(angle) * moveSpeed;
+    }
+    if (moveLeft) {
+      moveX -= Math.cos(angle) * moveSpeed;
+      moveZ += Math.sin(angle) * moveSpeed;
+    }
+    if (moveRight) {
+      moveX += Math.cos(angle) * moveSpeed;
+      moveZ -= Math.sin(angle) * moveSpeed;
+    }
+    
+    // Apply movement with boundary checking
+    var newX = camera.position.x + moveX;
+    var newZ = camera.position.z + moveZ;
+    
+    // Room boundaries (approximate based on wall positions)
+    // Left wall: x = -369, Right wall: x = 50
+    // Front wall: z = -229, Back wall: z = 270
+    if (newX > -360 && newX < 40) {
+      camera.position.x = newX;
+    }
+    if (newZ > -220 && newZ < 260) {
+      camera.position.z = newZ;
+    }
+  }
 
   // FOR ROTATION WHEN A PICTURE IS NOT SELECTED
   if (camPos == null) {
@@ -23331,6 +23421,10 @@ function renderRoom() {
   document.addEventListener("mousedown", onDocumentMouseDown, false);
   document.addEventListener("touchstart", onDocumentTouchStart, false);
   document.addEventListener("touchmove", onDocumentTouchMove, false);
+  
+  // Add keyboard event listeners for movement
+  document.addEventListener("keydown", onKeyDown, false);
+  document.addEventListener("keyup", onKeyUp, false);
 }
 
 function welcome(a, b) {
